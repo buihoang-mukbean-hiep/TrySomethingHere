@@ -7,84 +7,75 @@ namespace InstantWording
     public class MenuManager(RepositoryWord repositoryWord)
     {
         private readonly RepositoryWord _repositoryWord = repositoryWord;
-
-        public readonly string[] specialSets =
-            [
-            "┗→",
-            "❗",
-            "❓",
-            "|\n┗→",
-            "▼",
-            "✅",
-            ];
         static readonly string[] sourceMenu =
             [
             "file",
             "console",
             ];
-
+        int sourceMenuMax = sourceMenu.Max(x => x.Length);
         static readonly string[] showMenu =
             [
             "all",
             "priority field with delay",
-            "Back"
             ];
+        int showMenuMax = sourceMenu.Max(x => x.Length);
         static readonly string[] priorityMenu =
             [
             "漢字",
             "ひらがな",
             "Kanji_Vietnamese",
             "Definition",
-            "Back"
             ];
+        int priorityMenuMax = sourceMenu.Max(x => x.Length);
         static readonly string[] operationMenu =
             [
-            "Add from",
-            "Shuffle list",
-            "Show",
-            "Exit"
+            "Add from ",
+            "Shuffle list ",
+            "Show ",
+            "asdasd",
+            "asdasd",
             ];
+        int operationMenuMax = sourceMenu.Max(x => x.Length);
         public void Create()
         {
-            StringBuilder choiceBuilder = new();
+            byte[] choiceBuilder = new byte[3];
+            int pointer = 0;
+            StringBuilder subMenu = new();
+            int max = 0;
             do
             {
-                if (choiceBuilder.Length == 0)
+                if (pointer == 0)
                 {
-                    StringBuilder menu = new();
-                    menu.AppendLine("\n***********INSTANT_WORDING***********");
-                    for (int i = 1; i < operationMenu.Length; i++)
-                    {
-                        menu.AppendLine($"{i} . {operationMenu[i - 1]}");
-                    }
-                    Write(menu.ToString());
+                    subMenu.AppendLine("\n***********INSTANT_WORDING***********");
+                    subMenu.Append(BuildTail(max, operationMenu));
+                    //subMenu.Append($"\n{BuildNode(ref max, operationMenu, choiceBuilder)}");
+
+                    Write(subMenu.ToString());
+                    subMenu.Clear();
                 }
 
-                choiceBuilder.Append(ReadKey().KeyChar);
+                //choiceBuilder.Append(ReadKey().KeyChar);
+                choiceBuilder[pointer] = byte.Parse(ReadLine() ?? throw new NullReferenceException());
                 Clear();
 
-                StringBuilder subMenu = new();
-                subMenu.Append($"| \n");
                 try
                 {
-                    switch (choiceBuilder.ToString())
+                    switch (choiceBuilder)
                     {
-                        case "1":
-                            Write("\n" + _repositoryWord
-                                .BuildBalanceDistance((int)operationMenu.Max()?.Length, operationMenu, byte.Parse(choiceBuilder.ToString()))
-                                .ToString());
-                            for (int i = 1; i <= sourceMenu.Length; i++)
-                            {
-                                subMenu.AppendLine($"1.{i}| {sourceMenu[i - 1]}");
-                            }
-                            //Write($"{subMenu}┓\n|\n┗→");
 
-                            choiceBuilder.Append('.');
+                        case [1, 0, 0]:
+                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
+                            subMenu.Append(BuildTail(max, sourceMenu));
+                            WriteLine(subMenu);
+                            //choiceBuilder.Append('.');
+                            pointer++;
+                            subMenu.Clear(); max = 0;
                             break;
-
-                        case "1.1":
+                        case [1, 1, 0]:
+                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
+                            subMenu.Append($"{BuildHead(ref max, sourceMenu, choiceBuilder[1])}");
                             subMenu.Append("insert the two edges of the list (format:[value1] [value2]): ");
-                            Write(subMenu.ToString());
+                            Write(subMenu);
 
                             string str = ReadLine() ?? throw new ArgumentNullException(nameof(str));
                             string[] values = str.Split(' ');
@@ -95,54 +86,42 @@ namespace InstantWording
                             _repositoryWord.GetFromExcel(startRow + 1, endRow + 1);
                             WriteLine("✅loading successfully!");
 
-                            choiceBuilder.Clear();
-                            break;
-
-                        case "1.2":
+                            throw new Exception("clear some data");
+                        case [1, 2, 0]:
                             subMenu.AppendLine("Input: ");
                             Write(subMenu.ToString());
 
                             _repositoryWord.GetFromConsole(ReadLine());
                             WriteLine("✅loading successfully!");
-                            choiceBuilder.Clear();
-                            break;
-
-                        case "2":
+                            throw new Exception("clear some data");
+                        case [2, 0, 0]:
                             Write(subMenu.ToString());
                             var sw = Stopwatch.StartNew();
                             _repositoryWord.Shuffle();
                             sw.Stop();
-                            WriteLine($"Time 4 shuffle: {sw.ElapsedTicks} ticks\nShuffle done, u can try new list now...");
+                            WriteLine($"Time 4 shuffle: {sw.ElapsedTicks} ticks\n" +
+                                $"Shuffle done, u can try new list now...");
+                            throw new Exception("clear some data");
+                        case [3, 0, 0]:
+                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
+                            subMenu.Append(BuildTail(max, showMenu));
+                            WriteLine(subMenu);
 
-                            choiceBuilder.Clear();
+                            pointer++;
+                            subMenu.Clear(); max = 0;
                             break;
-
-                        case "3":
-                            Write("\n" + _repositoryWord
-                                .BuildBalanceDistance((int)operationMenu.Max()?.Length, operationMenu, byte.Parse(choiceBuilder.ToString()))
-                                .ToString());
-                            for (int i = 1; i < showMenu.Length; i++)
-                            {
-                                subMenu.AppendLine($"{i}. {showMenu[i - 1]}");
-                            }
-                            Write($"{subMenu}|\n┗→");
-
-                            choiceBuilder.Append('.');
-                            break;
-                        case "3.1":
-                            Write(subMenu.ToString());
+                        case [3, 1, 0]:
+                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
+                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[1])}");
+                            Write(subMenu);
                             _repositoryWord.Get();
+                            throw new Exception("clear some data");
+                        case [3, 2, 0]:
 
-                            choiceBuilder.Clear();
-                            break;
-
-                        case "3.2":
-                            subMenu.AppendLine("| Shuffle_it");
-                            for (int i = 1; i < priorityMenu.Length; i++)
-                            {
-                                subMenu.AppendLine($"{i}. {priorityMenu[i - 1]}");
-                            }
-                            Write(subMenu.ToString() + "|\n┗→Your choice: ");
+                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
+                            subMenu.Append($"{BuildHead(ref max, showMenu, choiceBuilder[1])}");
+                            subMenu.Append(BuildTail(max, priorityMenu));
+                            WriteLine(subMenu);
 
                             if (!byte.TryParse(ReadLine(), out byte subUserChoice)) throw new InvalidDataException("❗invalid input, only number allowed");
                             if (subUserChoice >= priorityMenu.Length) throw new ArgumentOutOfRangeException("❗out of choice's range");
@@ -151,25 +130,50 @@ namespace InstantWording
                             if (!byte.TryParse(ReadLine(), out byte delayTime)) throw new InvalidDataException("❗invalid input, only number allowed");
                             _repositoryWord.Get(priorityMenu[subUserChoice], delayTime);
 
-                            choiceBuilder.Clear();
-                            break;
-                        case "3.4" or "3.5":
-                                break;
+                            throw new Exception("clear some data");
+                        //break;
                         default:
-                            choiceBuilder.Clear();
-                            break;
+                            throw new Exception("clear some data");
                     }
                 }
                 catch (Exception ex)
                 {
-                    //throw new Exception(ex.Message);
                     WriteLine(ex.Message);
-                    choiceBuilder.Clear();
+                    pointer = 0; subMenu.Clear(); max = 0; choiceBuilder = [0, 0, 0];
+
                 }
             }
             while (true);
         }
+        private StringBuilder BuildHead(ref int max, string[] menu, byte choice)
+        {
+            StringBuilder res = new();
 
+            int menuMax = (menu.Max(s => s.Length) + 2);
+            for (int i = 1; i < choice; i++)
+                res.Append(' ', max)
+                    .Append("┣→")
+                    .Append($"{_repositoryWord.BuildBalanceDistance(menu[i - 1], ' ', menuMax)}\n");
+            res.Append(' ', max)
+                    .Append("┣→")
+                .Append($"{_repositoryWord.BuildBalanceDistance(menu[choice - 1], '━', menuMax)}┓\n");
+            for (int i = choice; i < menu.Length; i++)
+                res.Append(' ', max)
+                    .Append("┣→")
+                    .Append($"{_repositoryWord.BuildBalanceDistance(menu[i - 1], ' ', menuMax)}┃\n");
+            max += 4;
+            max += menuMax;
 
+            return res;
+        }
+        private static StringBuilder BuildTail(int max, string[] menu)
+        {
+            StringBuilder res = new();
+            for (int i = 0; i < menu.Length; i++)
+                res.Append(' ', max)
+                    .Append("┣→")
+                    .Append($"{i + 1}.{menu[i]}\n");
+            return res;
+        }
     }
 }

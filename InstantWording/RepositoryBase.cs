@@ -61,31 +61,12 @@ namespace InstantWording
         //  ┃
         //  ┃
         //  ┗━━→
-        public StringBuilder BuildBalanceDistance(string unBalance)
-        => new StringBuilder().Append("┣→")
-                              .Append(unBalance);
+        public StringBuilder BuildBalanceDistance(string unBalance, char repeatMark, int max)
+        => new StringBuilder().Append(unBalance)
+                              .Append(repeatMark, max - unBalance.Length + 2);
 
-        public StringBuilder BuildBalanceDistance(string unBalance, char repeatMark, char endMark, int max)
-        => BuildBalanceDistance(unBalance).Append(repeatMark, max - unBalance.Length + 2)
-                                          .Append(endMark);
-
-        public StringBuilder BuildBalanceDistance(int max, string[] menu, byte choice)
-        {
-            StringBuilder res = new();
-            for (int i = 1; i < choice; i++) res.Append($"{BuildBalanceDistance(menu[i - 1], ' ', ' ', max)}\n");
-            res.Append($"{BuildBalanceDistance(menu[choice - 1], '━', '┓', max)}\n");
-            for (int i = choice; i < menu.Length; i++) res.Append($"{BuildBalanceDistance(menu[i], ' ', '┃', max)}\n");
-            return res;
-        }
-
-        //public StringBuilder BuildBalanceDistance(int max, string[] menu)
-        //{
-        //    StringBuilder res = new();
-        //    for (int i = 1; i < choice; i++) res.Append($"{BuildBalanceDistance(menu[i - 1], ' ', ' ', max)}\n");
-        //    res.Append($"{BuildBalanceDistance(menu[choice - 1], '━', '┓', max)}\n");
-        //    for (int i = choice; i < menu.Length; i++) res.Append($"{BuildBalanceDistance(menu[i], ' ', '┃', max)}\n");
-        //    return res;
-        //}
+        public StringBuilder BuildBalanceDistance(char repeatMark, int max)
+            => new StringBuilder().Append(repeatMark, max);
 
         protected virtual void Max(T item, PropertyInfo[] propertyInfos)
         {
