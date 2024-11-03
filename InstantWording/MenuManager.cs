@@ -9,143 +9,186 @@ namespace InstantWording
         private readonly RepositoryWord _repositoryWord = repositoryWord;
         static readonly string[] sourceMenu =
             [
-            "file",
-            "console",
+            "file ",
+            "console ",
             ];
-        int sourceMenuMax = sourceMenu.Max(x => x.Length);
         static readonly string[] showMenu =
             [
-            "all",
-            "priority field with delay",
+            "all ",
+            "priority field with delay ",
             ];
-        int showMenuMax = sourceMenu.Max(x => x.Length);
         static readonly string[] priorityMenu =
             [
-            "漢字",
-            "ひらがな",
+            "Kanji",
+            "Hiragana",
             "Kanji_Vietnamese",
             "Definition",
             ];
-        int priorityMenuMax = sourceMenu.Max(x => x.Length);
         static readonly string[] operationMenu =
             [
             "Add from ",
-            "Shuffle list ",
+            "🎲 ",
             "Show ",
-            "asdasd",
-            "asdasd",
+            "Review ",
+            "mukbean ",
             ];
-        int operationMenuMax = sourceMenu.Max(x => x.Length);
         public void Create()
         {
-            byte[] choiceBuilder = new byte[3];
+            int[] choiceBuilder = new int[3];
             int pointer = 0;
-            StringBuilder subMenu = new();
+            StringBuilder menu = new();
             int max = 0;
-            do
+            while (true)
             {
                 if (pointer == 0)
                 {
-                    subMenu.AppendLine("\n***********INSTANT_WORDING***********");
-                    subMenu.Append(BuildTail(max, operationMenu));
-                    //subMenu.Append($"\n{BuildNode(ref max, operationMenu, choiceBuilder)}");
+                    menu.AppendLine("\n***********INSTANT_WORDING***********");
+                    menu.Append(BuildMenu(max, operationMenu));
 
-                    Write(subMenu.ToString());
-                    subMenu.Clear();
+                    Write(menu);
+                    menu.Clear();
                 }
-
-                //choiceBuilder.Append(ReadKey().KeyChar);
-                choiceBuilder[pointer] = byte.Parse(ReadLine() ?? throw new NullReferenceException());
-                Clear();
-
                 try
                 {
+                    if (!int.TryParse(ReadLine(), out choiceBuilder[pointer]))
+                        throw new ArgumentException("❗invalid input, only number allowed", nameof(choiceBuilder));
+
+                    Clear();
+
                     switch (choiceBuilder)
                     {
-
                         case [1, 0, 0]:
-                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
-                            subMenu.Append(BuildTail(max, sourceMenu));
-                            WriteLine(subMenu);
-                            //choiceBuilder.Append('.');
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append(BuildMenu(max, sourceMenu));
+                            WriteLine(menu);
                             pointer++;
-                            subMenu.Clear(); max = 0;
+                            Reset(ref max, ref menu);
                             break;
                         case [1, 1, 0]:
-                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
-                            subMenu.Append($"{BuildHead(ref max, sourceMenu, choiceBuilder[1])}");
-                            subMenu.Append("insert the two edges of the list (format:[value1] [value2]): ");
-                            Write(subMenu);
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append($"{BuildChosenNode(ref max, sourceMenu, choiceBuilder[1])}");
+                            menu.Append("insert the two edges of the list (format:[value1] [value2]): ");
+                            Write(menu);
 
                             string str = ReadLine() ?? throw new ArgumentNullException(nameof(str));
                             string[] values = str.Split(' ');
-                            if (!int.TryParse(values[0], out int startRow)
-                                || !int.TryParse(values[1], out int endRow)) throw new InvalidDataException("❗invalid input, only number allowed");
+                            if (!int.TryParse(values[0], out int startRow))
+                                throw new ArgumentException("❗invalid input, only number allowed", nameof(startRow));
+
+                            if (!int.TryParse(values[1], out int endRow))
+                                throw new ArgumentException("❗invalid input, only number allowed", nameof(endRow));
                             if (startRow > endRow) (startRow, endRow) = (endRow, startRow);
 
                             _repositoryWord.GetFromExcel(startRow + 1, endRow + 1);
                             WriteLine("✅loading successfully!");
-
-                            throw new Exception("clear some data");
+                            Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
+                            break;
                         case [1, 2, 0]:
-                            subMenu.AppendLine("Input: ");
-                            Write(subMenu.ToString());
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append($"{BuildChosenNode(ref max, sourceMenu, choiceBuilder[1])}");
+                            menu.Append("Input: ");
+                            Write(menu);
 
-                            _repositoryWord.GetFromConsole(ReadLine());
+                            _repositoryWord.GetFromConsole(ReadLine() ??
+                                throw new ArgumentNullException(null, "❗can't not be null"));
                             WriteLine("✅loading successfully!");
-                            throw new Exception("clear some data");
+                            Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
+                            break;
                         case [2, 0, 0]:
-                            Write(subMenu.ToString());
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            Write(menu);
                             var sw = Stopwatch.StartNew();
                             _repositoryWord.Shuffle();
                             sw.Stop();
-                            WriteLine($"Time 4 shuffle: {sw.ElapsedTicks} ticks\n" +
-                                $"Shuffle done, u can try new list now...");
-                            throw new Exception("clear some data");
+                            WriteLine($"Time 4 shuffle: {sw.ElapsedTicks} ticks");
+                            Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
+                            break;
                         case [3, 0, 0]:
-                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
-                            subMenu.Append(BuildTail(max, showMenu));
-                            WriteLine(subMenu);
-
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append(BuildMenu(max, showMenu));
+                            WriteLine(menu);
                             pointer++;
-                            subMenu.Clear(); max = 0;
+                            Reset(ref max, ref menu);
                             break;
                         case [3, 1, 0]:
-                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
-                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[1])}");
-                            Write(subMenu);
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append($"{BuildChosenNode(ref max, showMenu, choiceBuilder[1])}");
+                            Write(menu);
                             _repositoryWord.Get();
-                            throw new Exception("clear some data");
+                            Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
+                            break;
                         case [3, 2, 0]:
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append($"{BuildChosenNode(ref max, showMenu, choiceBuilder[1])}");
+                            menu.Append(BuildMenu(max, priorityMenu));
+                            WriteLine(menu);
 
-                            subMenu.Append($"\n{BuildHead(ref max, operationMenu, choiceBuilder[0])}");
-                            subMenu.Append($"{BuildHead(ref max, showMenu, choiceBuilder[1])}");
-                            subMenu.Append(BuildTail(max, priorityMenu));
-                            WriteLine(subMenu);
+                            pointer++;
 
-                            if (!byte.TryParse(ReadLine(), out byte subUserChoice)) throw new InvalidDataException("❗invalid input, only number allowed");
-                            if (subUserChoice >= priorityMenu.Length) throw new ArgumentOutOfRangeException("❗out of choice's range");
+                            Reset(ref max, ref menu);
+                            break;
+                        case [3, 2, 1] or [3, 2, 2] or [3, 2, 3] or [3, 2, 4]:
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append($"{BuildChosenNode(ref max, showMenu, choiceBuilder[1])}");
+                            menu.Append($"{BuildChosenNode(ref max, priorityMenu, choiceBuilder[2])}");
+                            WriteLine(menu);
+                            //if (choiceBuilder[2] >= priorityMenu.Length) throw new ArgumentOutOfRangeException("❗out of choice's range");
 
                             Write("delay interval (in second): ");
-                            if (!byte.TryParse(ReadLine(), out byte delayTime)) throw new InvalidDataException("❗invalid input, only number allowed");
-                            _repositoryWord.Get(priorityMenu[subUserChoice], delayTime);
+                            if (!int.TryParse(ReadLine(), out int delayTime))
+                                throw new ArgumentException("❗invalid input, only number allowed", nameof(delayTime));
+                            _repositoryWord.Get(priorityMenu[choiceBuilder[2]-1], delayTime);
+                            Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
+                            break;
+                        case [4, 0, 0]:
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append(BuildMenu(max, priorityMenu));
+                            WriteLine(menu);
 
-                            throw new Exception("clear some data");
-                        //break;
+                            pointer++;
+                            Reset(ref max, ref menu);
+                            break;
+                        case [4, 1, 0] or [4, 2, 0] or [4, 3, 0] or [4, 4, 0]:
+                            menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
+                            menu.Append($"{BuildChosenNode(ref max, priorityMenu, choiceBuilder[1])}");
+                            WriteLine(menu);
+
+                            Write("Which level you want to review: "); 
+                            if(!int.TryParse(ReadLine(), out int level))
+                                throw new ArgumentException("❗invalid input, only number allowed", nameof(level));
+                            if(level>3)
+                                throw new ArgumentOutOfRangeException(nameof(level), "❗out of level's range");
+                            _repositoryWord.CheckAnswer(priorityMenu[choiceBuilder[1]-1], level);
+                            Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
+                            break;
                         default:
-                            throw new Exception("clear some data");
+                            throw new ArgumentOutOfRangeException(nameof(choiceBuilder), "❗out of choice's range");
                     }
                 }
                 catch (Exception ex)
                 {
                     WriteLine(ex.Message);
-                    pointer = 0; subMenu.Clear(); max = 0; choiceBuilder = [0, 0, 0];
-
+                    Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
                 }
             }
-            while (true);
         }
-        private StringBuilder BuildHead(ref int max, string[] menu, byte choice)
+
+        private static void Reset(ref int max, ref StringBuilder subMenu)
+        {
+            max = 0; subMenu.Clear();
+        }
+        private static void Reset(ref int max, ref StringBuilder subMenu, ref int[] choiceBuilder)
+        {
+            Reset(ref max, ref subMenu);
+            choiceBuilder = [0, 0, 0];
+        }
+        private static void Reset(ref int max, ref StringBuilder subMenu, ref int[] choiceBuilder, ref int pointer)
+        {
+            Reset(ref max, ref subMenu, ref choiceBuilder);
+            pointer = 0;
+        }
+
+        private StringBuilder BuildChosenNode(ref int max, string[] menu, int choice)
         {
             StringBuilder res = new();
 
@@ -156,17 +199,20 @@ namespace InstantWording
                     .Append($"{_repositoryWord.BuildBalanceDistance(menu[i - 1], ' ', menuMax)}\n");
             res.Append(' ', max)
                     .Append("┣→")
-                .Append($"{_repositoryWord.BuildBalanceDistance(menu[choice - 1], '━', menuMax)}┓\n");
+                    .Append($"{_repositoryWord.BuildBalanceDistance(menu[choice - 1], '━', menuMax)}┓\n");
             for (int i = choice; i < menu.Length; i++)
                 res.Append(' ', max)
                     .Append("┣→")
-                    .Append($"{_repositoryWord.BuildBalanceDistance(menu[i - 1], ' ', menuMax)}┃\n");
-            max += 4;
+                    .Append($"{_repositoryWord.BuildBalanceDistance(menu[i], ' ', menuMax)}┃\n");
+            for (int i = 0; i < 2; i++)
+                res.Append(' ', max + 2)
+               .Append($"{_repositoryWord.BuildBalanceDistance("", ' ', menuMax)}┃\n");
+            max += 3;
             max += menuMax;
 
             return res;
         }
-        private static StringBuilder BuildTail(int max, string[] menu)
+        private static StringBuilder BuildMenu(int max, string[] menu)
         {
             StringBuilder res = new();
             for (int i = 0; i < menu.Length; i++)
@@ -175,5 +221,6 @@ namespace InstantWording
                     .Append($"{i + 1}.{menu[i]}\n");
             return res;
         }
+        
     }
 }

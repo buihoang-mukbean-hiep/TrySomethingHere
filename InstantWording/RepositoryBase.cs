@@ -1,7 +1,7 @@
-﻿using System.Reflection;
+﻿using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
-using static System.Console;
 
 namespace InstantWording
 {
@@ -9,11 +9,6 @@ namespace InstantWording
         where T : class
     {
         protected readonly List<T> listT = [];
-
-        private static readonly string japanesePattern = @"[\p{IsCJKUnifiedIdeographs}\p{IsHiragana}\p{IsKatakana}]";
-        protected int maxJP = 0;
-        protected int maxVN = 0;
-
         public virtual void Shuffle()
         {
             if (listT.Count == 0) throw new ArgumentNullException(nameof(listT), "❗no data yet, try 0 to add data");
@@ -26,72 +21,9 @@ namespace InstantWording
                 (listT[i], listT[k]) = (listT[k], listT[i]);
             }
         }
-
-        protected virtual void BuildDistance(List<T> list, PropertyInfo[] propertyInfos, string? priorityProperty, byte interval)
-        {
-            if (!String.IsNullOrWhiteSpace(priorityProperty))
-            {
-                for (int i = 0; i < propertyInfos.Length; i++)
-                {
-                    if (propertyInfos[i].Name.Equals(priorityProperty))
-                    {
-                        (propertyInfos[i], propertyInfos[0]) = (propertyInfos[0], propertyInfos[i]);
-                        break;
-                    }
-                }
-            }
-
-            foreach (var item in list)
-            {
-                var resetInterval = interval * 1000;
-                foreach (var prop in propertyInfos)
-                {
-                    string tempCheck = prop.GetValue(item)?.ToString() ?? string.Empty;
-                    Write(tempCheck);
-                    if (Regex.IsMatch(tempCheck, japanesePattern))
-                        Write(new string('＿', maxJP - tempCheck.Length) + '|');
-                    else
-                        Write(new string('_', maxVN - tempCheck.Length) + '|');
-                    Thread.Sleep(resetInterval /= 2);
-                }
-                WriteLine();
-            }
-        }
-        //━━┓
-        //  ┃
-        //  ┃
-        //  ┗━━→
         public StringBuilder BuildBalanceDistance(string unBalance, char repeatMark, int max)
         => new StringBuilder().Append(unBalance)
-                              .Append(repeatMark, max - unBalance.Length + 2);
-
-        public StringBuilder BuildBalanceDistance(char repeatMark, int max)
-            => new StringBuilder().Append(repeatMark, max);
-
-        protected virtual void Max(T item, PropertyInfo[] propertyInfos)
-        {
-            foreach (var prop in propertyInfos)
-            {
-                string tempCheck = prop.GetValue(item)?.ToString() ?? string.Empty;
-                if (Regex.IsMatch(tempCheck, japanesePattern))
-                    maxJP = Math.Max(tempCheck.Length, maxJP);
-                else
-                    maxVN = Math.Max(tempCheck.Length, maxVN);
-            }
-        }
-        //readonly can not set value, then whether readonly == static? else consider about resource taken
-
-        private static void FurtherReview(ref int priority)
-        {
-            throw new NotImplementedException();
-        }
-
-        private static bool CheckAnswer(string answer)
-        {
-            throw new NotImplementedException();
-        }
-
-
+                              .Append(repeatMark, max - unBalance.Length + 1);
     }
 }
 

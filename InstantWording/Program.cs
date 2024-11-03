@@ -8,7 +8,7 @@ namespace InstantWording
     {
         private readonly MenuManager _menuManager = menuManager;
 
-        static void Main(string[] args)
+        static void Main()
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
