@@ -14,8 +14,8 @@ namespace InstantWording
             ];
         static readonly string[] showMenu =
             [
-            "all ",
-            "priority field with delay ",
+            "statistics",
+            "speed eye-catching",
             ];
         static readonly string[] priorityMenu =
             [
@@ -29,8 +29,8 @@ namespace InstantWording
             "Add from ",
             "🎲 ",
             "Show ",
-            "Review ",
-            "mukbean ",
+            "📖 Review ",
+            "under mukbean control, stay away... ",
             ];
         public void Create()
         {
@@ -114,7 +114,7 @@ namespace InstantWording
                             menu.Append($"\n{BuildChosenNode(ref max, operationMenu, choiceBuilder[0])}");
                             menu.Append($"{BuildChosenNode(ref max, showMenu, choiceBuilder[1])}");
                             Write(menu);
-                            _repositoryWord.Get();
+                            _repositoryWord.Show();
                             Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
                             break;
                         case [3, 2, 0]:
@@ -137,7 +137,7 @@ namespace InstantWording
                             Write("delay interval (in second): ");
                             if (!int.TryParse(ReadLine(), out int delayTime))
                                 throw new ArgumentException("❗invalid input, only number allowed", nameof(delayTime));
-                            _repositoryWord.Get(priorityMenu[choiceBuilder[2]-1], delayTime);
+                            _repositoryWord.Show(priorityMenu[choiceBuilder[2]-1], delayTime);
                             Reset(ref max, ref menu, ref choiceBuilder, ref pointer);
                             break;
                         case [4, 0, 0]:

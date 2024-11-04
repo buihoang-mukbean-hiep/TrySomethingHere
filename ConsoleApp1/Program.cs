@@ -32,8 +32,6 @@
 
 //sw.Stop();
 //WriteLine($"Time 4 shuffle: {sw.ElapsedMilliseconds} ms");
-for(int i = 0; i < 3; i++)
-{
-    Console.WriteLine("your input is repeat: ");
-    Console.ReadLine();
-}
+DateTime dateTime = DateTime.Now; // Example DateTime
+DateTime dateOnly = dateTime.Date; // Extract date only
+Console.WriteLine(dateOnly); // Output will be the date part only

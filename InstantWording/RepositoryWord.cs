@@ -9,6 +9,7 @@ namespace InstantWording
 {
     public partial class RepositoryWord : RepositoryBase<Word>
     {
+        private readonly List<Word> sameKanjiComponentWordList = [];
         private static readonly PropertyInfo[] proInfos = typeof(Word)
             .GetProperties()
             .Where(prop => prop.PropertyType == typeof(string))
@@ -29,13 +30,13 @@ namespace InstantWording
                 var row = myWorksheet.Cells[rowNum, 2, rowNum, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString()).ToList();
                 listT.Add(new Word
                 {
+                    Id = rowNum - 1,
                     Kanji = row.ElementAt(0),
                     Hiragana = row.ElementAt(1),
                     Kanji_Vietnamese = row.ElementAt(2),
                     Definition = row.ElementAt(2) //If the number of element row is null then the code break => should replace ElementAt() /set a default array with null and store the gotten data into it /make verification data if null 
-
                 });
-                Max(listT[rowNum - 2], proInfos, ref maxOfProp);
+                Max(listT[^1], proInfos, ref maxOfProp);
             }
         }
 
@@ -51,18 +52,19 @@ namespace InstantWording
 
                 listT.Add(new Word
                 {
+                    Id = listT.Count+1,
                     Kanji = temp[0],
                     Hiragana = temp[1],
                     Kanji_Vietnamese = temp[2],
                     Definition = temp[3]
                 }
                 );
-                Max(listT[i], proInfos, ref maxOfProp);
+                Max(listT[^1], proInfos, ref maxOfProp);
             }
         }
 
-        public virtual void Get() => Get(null, 0);
-        public virtual void Get(string? priorityProperty, int intervalInMilisec)
+        public virtual void Show() => Show(null, 0);
+        public virtual void Show(string? priorityProperty, int intervalInMilisec)
         {
             if (listT.Count == 0)
                 throw new ArgumentNullException(message: "❗no data yet, try 0 to add data", paramName: nameof(priorityProperty));
@@ -71,19 +73,29 @@ namespace InstantWording
             {
                 var resetInterval = intervalInMilisec;
                 int i = 0;
+
+                Write($"{item.Id}。{new string(' ',3-item.Id.ToString().Length)}");
                 foreach (var prop in proInfos)
                 {
                     string tempCheck = prop.GetValue(item)?.ToString() ?? string.Empty;
                     if (JPRegex().IsMatch(tempCheck))
+                    {
+                        SetRememberLevelColor(item);
                         Write(BuildBalanceDistance(tempCheck, '＿', maxOfProp[i]));
+                        ResetColor();
+                    }
                     else
+                    {
                         Write(BuildBalanceDistance(tempCheck, '_', maxOfProp[i]));
+                    }
                     Thread.Sleep(resetInterval /= 2);
                     i++;
                 }
+                ForegroundColor = ConsoleColor.DarkGray;
                 Write($"Level:{item.RememberLevel}|Times:{item.ReviewTimes}" +
-                    $"|PreviousOn:{item.LastReviewDate}|⏳:{item.NextReviewLeft}");
-                WriteLine();
+                    $"|Last:{item.LastReviewDate:MM-dd}|⏳:{item.NextReviewLeft}");
+                ResetColor();
+                WriteLine('\n');
             }
         }
 
@@ -95,9 +107,11 @@ namespace InstantWording
 
             foreach (var item in listT)
             {
-                if (item.RememberLevel>reviewLevel) continue;
+                if (item.RememberLevel > reviewLevel) continue;
                 string root = proInfos[0].GetValue(item)?.ToString() ?? string.Empty;
+                SetRememberLevelColor(item);
                 WriteLine(root);
+                ResetColor();
 
                 var sw = Stopwatch.StartNew();
                 Write($"other meanings: ");
@@ -105,7 +119,7 @@ namespace InstantWording
                 sw.Stop();
                 WriteLine($"⏰: {sw.ElapsedMilliseconds / 1000} s");
 
-                if (raw.Equals("esc") || raw.Equals("exit") ||raw.Equals("out")) break;
+                if (raw.Equals("esc") || raw.Equals("exit") || raw.Equals("out")) break;
                 string[] check = raw.Split(';');
 
                 char[] matchedAnswer = new char[proInfos.Length - 1];
@@ -113,12 +127,9 @@ namespace InstantWording
                 for (int i = 0; i < 3; i++)
                 {
                     string tempCheck = proInfos[i + 1].GetValue(item)?.ToString() ?? string.Empty;
-                    if (JPRegex().IsMatch(tempCheck))
-                        Write(BuildBalanceDistance(tempCheck, '＿', maxOfProp[i + 1]));
-                    else
-                        Write(BuildBalanceDistance(tempCheck, '_', maxOfProp[i + 1]));
                     for (int j = 0; j < check.Length; j++)
                     {
+                        ResetColor();
                         if (check[j].Equals(tempCheck))
                         {
                             matchedAnswer[i] = '✅';
@@ -127,8 +138,18 @@ namespace InstantWording
                             break;
                         }
                         else
+                        {
+                            ForegroundColor = ConsoleColor.Red;
                             matchedAnswer[i] = '❌';
+                        }
                     }
+                    if (JPRegex().IsMatch(tempCheck))
+                        Write(BuildBalanceDistance(tempCheck, '＿', maxOfProp[i + 1]));
+                    else
+                    {
+                        Write(BuildBalanceDistance(tempCheck, '_', maxOfProp[i + 1]));
+                    }
+                    ResetColor();
                     WriteLine($"{matchedAnswer[i]} " +
                                 $"{matchedAnswer.Count(x => x.Equals('✅')) * 100 / matchedAnswer.Length}%");
                 }
@@ -155,7 +176,16 @@ namespace InstantWording
                 i++;
             }
         }
-
+        private static void SetRememberLevelColor(Word item)
+        {
+            ForegroundColor = item.RememberLevel < -2 ? ConsoleColor.DarkGray
+                                        : item.RememberLevel < 0 ? ConsoleColor.DarkRed
+                                        : item.RememberLevel == 0 ? ConsoleColor.White
+                                        : item.RememberLevel < 3 ? ConsoleColor.DarkYellow
+                                                                 : ConsoleColor.DarkGreen;
+            BackgroundColor = item.RememberLevel < -2 ? ConsoleColor.DarkRed
+                                                      : ConsoleColor.Black;
+        }
         private static void UpdateFurtherReview(Word word)
         {
             if (word.RememberLevel > 3)
@@ -173,7 +203,6 @@ namespace InstantWording
                 word.NextReviewLeft = 2 * word.ReviewTimes + 1;
             }
         }
-
         private static void SwapPriority(string prior)
         {
             for (int i = 0; i < proInfos.Length; i++)
@@ -185,5 +214,19 @@ namespace InstantWording
                 }
             }
         }
+
+        public void Delete() => listT.Clear();
+
+        public virtual void ViewLearningProgress()
+        {
+
+        }
+
+        public virtual void PrimierReview()
+        {
+
+            //auto repeat during long review with the false word
+        }
+
     }
 }
