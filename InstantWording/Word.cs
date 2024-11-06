@@ -2,7 +2,7 @@
 {
     public class Word
     {
-        public int Id {  get; set; }
+        public required string Id {  get; set; }
         public string? Kanji { get; set; }
         public string? Hiragana { get; set; }
         public string? Kanji_Vietnamese { get; set; }

@@ -2,6 +2,7 @@
 using System.Data;
 using System.Diagnostics;
 using System.Reflection;
+using System.Text;
 using System.Text.RegularExpressions;
 using static System.Console;
 
@@ -12,69 +13,109 @@ namespace InstantWording
         private readonly List<Word> sameKanjiComponentWordList = [];
         private static readonly PropertyInfo[] proInfos = typeof(Word)
             .GetProperties()
-            .Where(prop => prop.PropertyType == typeof(string))
+            .Where(prop => new string[] { "Kanji", "Hiragana", "Kanji_Vietnamese", "Definition" }.Any(str => str.Equals(prop.Name)))
             .ToArray();
+        private static readonly PropertyInfo[] fullProInfos = typeof(Word).GetProperties();
+
         private int[] maxOfProp = new int[proInfos.Length];
+        private int[] maxOfFullProp = new int[fullProInfos.Length];
+
         [GeneratedRegex(@"[\p{IsCJKUnifiedIdeographs}\p{IsHiragana}\p{IsKatakana}]")]
         private static partial Regex JPRegex();
 
-        public void GetFromExcel(int min, int max)
+        public void ReadExcel(int min, int max, string filePath)
         {
-            ExcelPackage xlPackage = new(new FileInfo(@"D:\Documents\日本語\Mimikara.xlsx"));
+            ExcelPackage xlPackage = new(new FileInfo(filePath));
 
             var myWorksheet = xlPackage.Workbook.Worksheets.ElementAt(0); //select sheet here
             var totalColumns = myWorksheet.Dimension.End.Column;
 
             for (int rowNum = min; rowNum <= max; rowNum++) //select starting row here
             {
-                var row = myWorksheet.Cells[rowNum, 2, rowNum, totalColumns].Select(c => c.Value == null ? string.Empty : c.Value.ToString()).ToList();
+                var row = myWorksheet.Cells[rowNum, 2, rowNum, totalColumns]
+                    .Select(c => c.Value == null ? string.Empty : c.Value.ToString())
+                    .ToList();
                 listT.Add(new Word
                 {
-                    Id = rowNum - 1,
+                    Id = (listT.Count+1).ToString(),
                     Kanji = row.ElementAt(0),
                     Hiragana = row.ElementAt(1),
                     Kanji_Vietnamese = row.ElementAt(2),
-                    Definition = row.ElementAt(2) //If the number of element row is null then the code break => should replace ElementAt() /set a default array with null and store the gotten data into it /make verification data if null 
+                    Definition = row.ElementAt(2),
+                    LastReviewDate = DateTime.Now,
                 });
                 Max(listT[^1], proInfos, ref maxOfProp);
             }
         }
-
-        public virtual void GetFromConsole(string userConsoleInput)
+        public async Task ReadAsync(string filePath)
         {
+            using StreamReader reader = new(filePath);
+            string fileInput = await reader.ReadToEndAsync();
+
             char columnMark = ';';
             char rowMark = '.';
 
-            var arrayOfRow = userConsoleInput.Split(rowMark);
-            for (int i = 0; i < arrayOfRow.Length; i++)
+            var arrayOfRow = fileInput.Split(rowMark);
+
+            for (int i = 0; i < arrayOfRow.Length - 1; i++)
             {
                 var temp = arrayOfRow[i].Split(columnMark);
-
-                listT.Add(new Word
-                {
-                    Id = listT.Count+1,
-                    Kanji = temp[0],
-                    Hiragana = temp[1],
-                    Kanji_Vietnamese = temp[2],
-                    Definition = temp[3]
-                }
-                );
+                if (temp.Length == 4)
+                    listT.Add(new Word
+                    {
+                        Id = (listT.Count + 1).ToString(),
+                        Kanji = temp[0],
+                        Hiragana = temp[1],
+                        Kanji_Vietnamese = temp[2],
+                        Definition = temp[3],
+                        LastReviewDate = DateTime.Now,
+                    });
+                else
+                    listT.Add(new Word
+                    {
+                        Id = temp[0],
+                        Kanji = temp[1],
+                        Hiragana = temp[2],
+                        Kanji_Vietnamese = temp[3],
+                        Definition = temp[4],
+                        RememberLevel = int.Parse(temp[5]),
+                        LastReviewDate = DateTime.Parse(temp[6]),
+                        NextReviewLeft = int.Parse(temp[7]),
+                        ReviewTimes = int.Parse(temp[8]),
+                    }
+                    );
                 Max(listT[^1], proInfos, ref maxOfProp);
             }
         }
+        public async Task WriteAsync()
+        {
+            string filePath = $@"C:\Users\ADMIN\Desktop\Review on {DateTime.Now:d-MMM-yy HH：MM：ss}.txt";
+            var listToSb = new StringBuilder();
+            foreach (var item in listT)
+            {
+                foreach (var prop in fullProInfos)
+                {
+                    string temp = prop.GetValue(item)?.ToString() ?? String.Empty;
+                    listToSb.Append($"{temp};");
+                }
+                listToSb[^1] = '.';
+            }
+            await File.WriteAllTextAsync(filePath, listToSb.ToString());
+        }
 
-        public virtual void Show() => Show(null, 0);
-        public virtual void Show(string? priorityProperty, int intervalInMilisec)
+        public virtual void Get() => Get(null, 0, 4);
+        public virtual void Get(string? priorityProperty, int intervalInMilisec, int reviewLevel)
         {
             if (listT.Count == 0)
                 throw new ArgumentNullException(message: "❗no data yet, try 0 to add data", paramName: nameof(priorityProperty));
             if (!String.IsNullOrWhiteSpace(priorityProperty)) SwapPriority(priorityProperty);
             foreach (var item in listT)
             {
+                if (item.RememberLevel > reviewLevel) continue;
                 var resetInterval = intervalInMilisec;
                 int i = 0;
 
-                Write($"{item.Id}。{new string(' ',3-item.Id.ToString().Length)}");
+                Write($"{item.Id}.{new string(' ', 3 - item.Id.ToString().Length)}");
                 foreach (var prop in proInfos)
                 {
                     string tempCheck = prop.GetValue(item)?.ToString() ?? string.Empty;
@@ -86,16 +127,38 @@ namespace InstantWording
                     }
                     else
                     {
-                        Write(BuildBalanceDistance(tempCheck, '_', maxOfProp[i]));
+                        Write(BuildBalanceDistance(tempCheck, ' ', maxOfProp[i]));
                     }
                     Thread.Sleep(resetInterval /= 2);
                     i++;
                 }
                 ForegroundColor = ConsoleColor.DarkGray;
                 Write($"Level:{item.RememberLevel}|Times:{item.ReviewTimes}" +
-                    $"|Last:{item.LastReviewDate:MM-dd}|⏳:{item.NextReviewLeft}");
+                    $"|Last:{item.LastReviewDate:dd-MMM-yyyy}|⏳:{item.NextReviewLeft}");
                 ResetColor();
                 WriteLine('\n');
+            }
+        }
+        public virtual void Add(string userConsoleInput)
+        {
+            char columnMark = ';';
+            char rowMark = '.';
+
+            var arrayOfRow = userConsoleInput.Split(rowMark);
+            for (int i = 0; i < arrayOfRow.Length; i++)
+            {
+                var temp = arrayOfRow[i].Split(columnMark);
+
+                listT.Add(new Word
+                {
+                    Id = (listT.Count + 1).ToString(),
+                    Kanji = temp[0],
+                    Hiragana = temp[1],
+                    Kanji_Vietnamese = temp[2],
+                    Definition = temp[3]
+                }
+                );
+                Max(listT[^1], proInfos, ref maxOfProp);
             }
         }
 
@@ -116,6 +179,7 @@ namespace InstantWording
                 var sw = Stopwatch.StartNew();
                 Write($"other meanings: ");
                 string raw = ReadLine() ?? string.Empty;
+                raw = raw.ToLower();
                 sw.Stop();
                 WriteLine($"⏰: {sw.ElapsedMilliseconds / 1000} s");
 
@@ -130,7 +194,7 @@ namespace InstantWording
                     for (int j = 0; j < check.Length; j++)
                     {
                         ResetColor();
-                        if (check[j].Equals(tempCheck))
+                        if (check[j].Equals(tempCheck.ToLower()))
                         {
                             matchedAnswer[i] = '✅';
                             item.RememberLevel++;
@@ -144,10 +208,10 @@ namespace InstantWording
                         }
                     }
                     if (JPRegex().IsMatch(tempCheck))
-                        Write(BuildBalanceDistance(tempCheck, '＿', maxOfProp[i + 1]));
+                        Write(BuildBalanceDistance(tempCheck, ' ', maxOfProp[i + 1]));
                     else
                     {
-                        Write(BuildBalanceDistance(tempCheck, '_', maxOfProp[i + 1]));
+                        Write(BuildBalanceDistance(tempCheck, ' ', maxOfProp[i + 1]));
                     }
                     ResetColor();
                     WriteLine($"{matchedAnswer[i]} " +
@@ -162,6 +226,9 @@ namespace InstantWording
                 }
             }
         }
+
+        //new update will reset some fields likes review times to 0,...
+        public void UpdateAsync() => throw new NotImplementedException();
 
         private static void Max(Word item, PropertyInfo[] propertyInfos, ref int[] max)
         {
@@ -215,13 +282,7 @@ namespace InstantWording
             }
         }
 
-        public void Delete() => listT.Clear();
-
-        public virtual void ViewLearningProgress()
-        {
-
-        }
-
+        public void Delete() => throw new NotImplementedException();
         public virtual void PrimierReview()
         {
 

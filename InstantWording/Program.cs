@@ -1,27 +1,24 @@
 ﻿using OfficeOpenXml;
-using static System.Console;
-
-
 namespace InstantWording
 {
     public class Program(MenuManager menuManager)
     {
         private readonly MenuManager _menuManager = menuManager;
 
-        static void Main()
+        static async Task Main()
         {
             ExcelPackage.LicenseContext = OfficeOpenXml.LicenseContext.NonCommercial;
 
             var repo = new RepositoryWord();
             var menuManager = new MenuManager(repo);
+            
             var program = new Program(menuManager);
-            program.Execute();
+            await program.Execute();
         }
 
-        public void Execute()
+        public async Task Execute()
         {
-            _menuManager.Create();
-
+            await _menuManager.Create();
         }
     }
 }

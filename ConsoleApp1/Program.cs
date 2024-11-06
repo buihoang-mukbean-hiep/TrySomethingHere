@@ -1,37 +1,33 @@
-﻿//using System.Diagnostics;
-//using System.Text;
-//using static System.Console;
+﻿using static System.Console;
+using static System.Net.Mime.MediaTypeNames;
 
-//int.TryParse(ReadLine(), out int height);
-//var sw = Stopwatch.StartNew();
+Write("input path: ");
+try
+{
+    string filePath = ReadLine() ?? throw new ArgumentNullException(nameof(filePath));
+    filePath = filePath.Trim('"');
+    using StreamReader reader = new(filePath ?? throw new ArgumentNullException());
+    string fileInput = await reader.ReadToEndAsync();
+    WriteLine(fileInput);
+    //var arrayOfRow = userConsoleInput.Split(rowMark);
+    //for (int i = 0; i < arrayOfRow.Length; i++)
+    //{
+    //    var temp = arrayOfRow[i].Split(columnMark);
 
-//StringBuilder sb = new();
-//for (int i = 0; i<height; i++)
-//{
-//    sb.Append(' ', height - i);
-//    for (int j = 0; j < 2*i+1; j++)
-//	{
-//        sb.Append('*');
-//	}
-//    sb.Append(' ', height - i);
-//    sb.AppendLine();
-//}
-//WriteLine(sb.ToString());
-
-//sb.Clear();
-//for (int i = 0; i < height; i++)
-//{
-//    sb.Append(' ', height - i);
-//    for (int j = 0; j < i + 1; (j)++)
-//    {
-//        sb.Append(2 * j + 1);
-//    }
-//    sb.AppendLine();
-//}
-//WriteLine(sb.ToString());
-
-//sw.Stop();
-//WriteLine($"Time 4 shuffle: {sw.ElapsedMilliseconds} ms");
-DateTime dateTime = DateTime.Now; // Example DateTime
-DateTime dateOnly = dateTime.Date; // Extract date only
-Console.WriteLine(dateOnly); // Output will be the date part only
+    //    listT.Add(new Word
+    //    {
+    //        Id = listT.Count + 1,
+    //        Kanji = temp[0],
+    //        Hiragana = temp[1],
+    //        Kanji_Vietnamese = temp[2],
+    //        Definition = temp[3]
+    //    }
+    //    );
+    //    Max(listT[^1], proInfos, ref maxOfProp);
+    //}
+}
+catch (IOException e)
+{
+    Console.WriteLine("The file could not be read:");
+    Console.WriteLine(e.Message);
+}
