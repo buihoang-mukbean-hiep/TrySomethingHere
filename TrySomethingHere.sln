@@ -7,7 +7,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WTFTest", "WTFTest\WTFTest.
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "InstantWording", "InstantWording\InstantWording.csproj", "{3E07B5EE-869A-45C6-9B60-0DFD42F6C348}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{D204F57F-C7E1-4EB9-804A-CC79CEDC3516}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ConsoleApp1", "ConsoleApp1\ConsoleApp1.csproj", "{D204F57F-C7E1-4EB9-804A-CC79CEDC3516}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

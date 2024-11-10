@@ -15,8 +15,9 @@ namespace InstantWording
             .GetProperties()
             .Where(prop => new string[] { "Kanji", "Hiragana", "Kanji_Vietnamese", "Definition" }.Any(str => str.Equals(prop.Name)))
             .ToArray();
-        private static readonly PropertyInfo[] fullProInfos = typeof(Word).GetProperties();
-
+        private static PropertyInfo[] fullProInfos = typeof(Word).GetProperties()
+            .Where(prop => new string[] { "NextReviewLeft" }.Any(str => !str.Equals(prop.Name)))
+            .ToArray();
         private int[] maxOfProp = new int[proInfos.Length];
         private int[] maxOfFullProp = new int[fullProInfos.Length];
 
@@ -37,7 +38,7 @@ namespace InstantWording
                     .ToList();
                 listT.Add(new Word
                 {
-                    Id = (listT.Count+1).ToString(),
+                    Id = (listT.Count + 1).ToString(),
                     Kanji = row.ElementAt(0),
                     Hiragana = row.ElementAt(1),
                     Kanji_Vietnamese = row.ElementAt(2),
@@ -80,8 +81,7 @@ namespace InstantWording
                         Definition = temp[4],
                         RememberLevel = int.Parse(temp[5]),
                         LastReviewDate = DateTime.Parse(temp[6]),
-                        NextReviewLeft = int.Parse(temp[7]),
-                        ReviewTimes = int.Parse(temp[8]),
+                        ReviewTimes = int.Parse(temp[7]),
                     }
                     );
                 Max(listT[^1], proInfos, ref maxOfProp);
@@ -109,34 +109,45 @@ namespace InstantWording
             if (listT.Count == 0)
                 throw new ArgumentNullException(message: "❗no data yet, try 0 to add data", paramName: nameof(priorityProperty));
             if (!String.IsNullOrWhiteSpace(priorityProperty)) SwapPriority(priorityProperty);
+            int i = 0;
             foreach (var item in listT)
             {
                 if (item.RememberLevel > reviewLevel) continue;
                 var resetInterval = intervalInMilisec;
-                int i = 0;
-
-                Write($"{item.Id}.{new string(' ', 3 - item.Id.ToString().Length)}");
+                int j = 0;
+                i++;
+                Write($"{item.Id}.{new string(' ', 4 - item.Id.ToString().Length)}");
                 foreach (var prop in proInfos)
                 {
                     string tempCheck = prop.GetValue(item)?.ToString() ?? string.Empty;
                     if (JPRegex().IsMatch(tempCheck))
                     {
                         SetRememberLevelColor(item);
-                        Write(BuildBalanceDistance(tempCheck, '＿', maxOfProp[i]));
+                        Write(BuildBalanceDistance(tempCheck, '＿', maxOfProp[j]));
                         ResetColor();
                     }
                     else
                     {
-                        Write(BuildBalanceDistance(tempCheck, ' ', maxOfProp[i]));
+                        SetRememberLevelColor(item);
+                        Write(BuildBalanceDistance(tempCheck, ' ', maxOfProp[j]));
                     }
                     Thread.Sleep(resetInterval /= 2);
-                    i++;
+                    j++;
                 }
-                ForegroundColor = ConsoleColor.DarkGray;
-                Write($"Level:{item.RememberLevel}|Times:{item.ReviewTimes}" +
-                    $"|Last:{item.LastReviewDate:dd-MMM-yyyy}|⏳:{item.NextReviewLeft}");
                 ResetColor();
+
+                Write($"\n     Level: {item.RememberLevel}" +
+                    $"|Count: {item.ReviewTimes}" +
+                    $"|Past: {item.LastReviewDate:dd-MMM-yyyy}" +
+                    $"|⏳: {item.NextReviewLeft}");
                 WriteLine('\n');
+                ResetColor();
+                if (intervalInMilisec != 0 && i % 20 == 0)
+                {
+                    Write("Continue? (Y/N) => ");
+                    string? str = ReadLine()?.ToUpper();
+                    if (str == "N") break;
+                }
             }
         }
         public virtual void Add(string userConsoleInput)
@@ -161,7 +172,6 @@ namespace InstantWording
                 Max(listT[^1], proInfos, ref maxOfProp);
             }
         }
-
         public void CheckAnswer(string? priorityProperty, int reviewLevel)
         {
             if (listT.Count == 0)
@@ -184,17 +194,17 @@ namespace InstantWording
                 WriteLine($"⏰: {sw.ElapsedMilliseconds / 1000} s");
 
                 if (raw.Equals("esc") || raw.Equals("exit") || raw.Equals("out")) break;
-                string[] check = raw.Split(';');
+                string[] answer = raw.Split(';');
 
                 char[] matchedAnswer = new char[proInfos.Length - 1];
 
                 for (int i = 0; i < 3; i++)
                 {
                     string tempCheck = proInfos[i + 1].GetValue(item)?.ToString() ?? string.Empty;
-                    for (int j = 0; j < check.Length; j++)
+                    for (int j = 0; j < answer.Length; j++)
                     {
                         ResetColor();
-                        if (check[j].Equals(tempCheck.ToLower()))
+                        if (answer[j].Equals(tempCheck.ToLower()))
                         {
                             matchedAnswer[i] = '✅';
                             item.RememberLevel++;
@@ -243,16 +253,7 @@ namespace InstantWording
                 i++;
             }
         }
-        private static void SetRememberLevelColor(Word item)
-        {
-            ForegroundColor = item.RememberLevel < -2 ? ConsoleColor.DarkGray
-                                        : item.RememberLevel < 0 ? ConsoleColor.DarkRed
-                                        : item.RememberLevel == 0 ? ConsoleColor.White
-                                        : item.RememberLevel < 3 ? ConsoleColor.DarkYellow
-                                                                 : ConsoleColor.DarkGreen;
-            BackgroundColor = item.RememberLevel < -2 ? ConsoleColor.DarkRed
-                                                      : ConsoleColor.Black;
-        }
+
         private static void UpdateFurtherReview(Word word)
         {
             if (word.RememberLevel > 3)
@@ -260,14 +261,12 @@ namespace InstantWording
                 word.ReviewTimes++;
                 word.RememberLevel = 0;
                 word.LastReviewDate = DateTime.Now;
-                word.NextReviewLeft = 2 * word.ReviewTimes + 1;
             }
-            else if (word.RememberLevel < -3)
+            else
             {
                 word.ReviewTimes--;
                 word.RememberLevel = 0;
                 word.LastReviewDate = DateTime.Now;
-                word.NextReviewLeft = 2 * word.ReviewTimes + 1;
             }
         }
         private static void SwapPriority(string prior)
@@ -282,12 +281,89 @@ namespace InstantWording
             }
         }
 
-        public void Delete() => throw new NotImplementedException();
+        private static void SetRememberLevelColor(Word item)
+        {
+            ForegroundColor = item.RememberLevel < -2 ? ConsoleColor.DarkGray
+                                        : item.RememberLevel < 0 ? ConsoleColor.DarkRed
+                                        : item.RememberLevel == 0 ? ConsoleColor.White
+                                        : item.RememberLevel < 3 ? ConsoleColor.DarkGreen
+                                                                 : ConsoleColor.DarkGray;
+            BackgroundColor = item.RememberLevel < -2 ? ConsoleColor.DarkRed
+                                        : item.RememberLevel < 3 ? ConsoleColor.Black
+                                        : ConsoleColor.DarkGreen;
+        }
+        public string SetProgressColor(string str)
+        {
+            Dictionary<string, int> statusCounts = new()
+            {
+                { "rgb(250, 64, 50)", 0 },
+                { "rgb(194, 255, 199)", 0 }
+            };
+            foreach (var item in listT)
+            {
+                if (item.RememberLevel < 0)
+                    statusCounts["rgb(250, 64, 50)"]++;
+                else if (item.RememberLevel > 0)
+                    statusCounts["rgb(194, 255, 199)"]++;
+            }
+            return $"{Draw("", statusCounts, str)}\x1b[0m";
+        }
+
+        public string Draw(string vibration, Dictionary<string, int> rgb, string art)
+        {
+            int pointer = 0;
+            int sum = rgb.Values.Sum();
+            if (sum == 0) return art;
+            foreach (var item in rgb)
+            {
+                if (item.Value != 0)
+                {
+                    string code = $"\x1b[0;38;2;{ConvertRGBtoANSIcode(item.Key)}m";
+                    art = art.Insert(pointer, code);
+                }
+                pointer += (int)((double)item.Value / sum * art.Length);
+            }
+            return art;
+        }
+        public string ConvertRGBtoANSIcode(string rgb) => rgb[4..^1].Replace(", ", ";");
+        public void OrderBy()
+        {
+            listT = [.. listT.OrderBy(w => w.NextReviewLeft)];
+        }
+
+        public void Delete()
+        {
+            List<Word> chosenWords = [];
+            foreach (var item in listT)
+            {
+                if (item.Kanji?.Length == maxOfProp[0])
+                {
+                    Write($"{item.Kanji}\n");
+                    chosenWords.Add(item);
+                }
+            }
+            Write("delete too long word: ");
+            string? str = ReadLine() ?? "";
+            if (str.ToUpper().Equals("Y"))
+            {
+                foreach (var item in chosenWords)
+                {
+                    listT.Remove(item);
+                }
+                for (int i = 0; i < maxOfProp.Length; i++)
+                {
+                    maxOfProp[i] = 0;
+                }
+                foreach (var item in listT)
+                {
+                    Max(item, proInfos, ref maxOfProp);
+                }
+            }
+        }
         public virtual void PrimierReview()
         {
 
             //auto repeat during long review with the false word
         }
-
     }
 }

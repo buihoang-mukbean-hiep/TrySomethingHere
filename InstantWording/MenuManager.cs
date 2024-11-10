@@ -10,6 +10,7 @@ namespace InstantWording
 
         public async Task Create()
         {
+
             int[] choiceBuilder = new int[3];
             int pointer = 0;
             StringBuilder menuBuilder = new();
@@ -18,9 +19,13 @@ namespace InstantWording
             var sw = new Stopwatch();
             while (true)
             {
-                Write(pointer == 0 ?
-                    menuBuilder.AppendLine("***********INSTANT_WORDING***********")
-                        .Append(BuildMenu(max, menuBehavior)) : String.Empty);
+                if (pointer == 0)
+                {
+                    Write(_repositoryWord.SetProgressColor(asciiArts[0]));
+                    Write(menuBuilder.Append($"\x1b[5;1;38;2;{_repositoryWord.ConvertRGBtoANSIcode("rgb(250, 247, 200)")}m" +
+                        $"{BuildMenu(max, menuBehavior)}[0m"));
+                    menuBuilder.Clear();
+                }
                 menuBuilder.AppendLine();
                 try
                 {
@@ -31,12 +36,22 @@ namespace InstantWording
                     {
                         case [1, 0, 0]:
                             WriteLine(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                                 .Append(BuildMenu(max, subMenuSource)));
+                                                 .Append(BuildMenu(max, subMenuModify)));
                             pointer++; Reset(ref max, ref menuBuilder);
                             break;
                         case [1, 1, 0]:
+                            menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
+                                .Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[1])}")
+                                       .Append(BuildMenu(max, subMenuSource));
+                            WriteLine(menuBuilder);
+
+                            pointer++;
+                            Reset(ref max, ref menuBuilder);
+                            break;
+                        case [1, 1, 1]:
                             Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                             .Append($"{BuildChosenNode(ref max, subMenuSource, choiceBuilder[1])}")
+                                             .Append($"{BuildChosenNode(ref max, subMenuModify, choiceBuilder[1])}")
+                                             .Append($"{BuildChosenNode(ref max, subMenuSource, choiceBuilder[2])}")
                                              .Append("insert the two edges of the list (format:[value1] [value2]): "));
                             string str = ReadLine() ?? throw new ArgumentNullException(nameof(str));
                             string[] values = str.Split(' ');
@@ -45,21 +60,43 @@ namespace InstantWording
                             if (!int.TryParse(values[1], out int endRow))
                                 throw new ArgumentException("❗invalid input, only number allowed", nameof(endRow));
                             if (startRow > endRow) (startRow, endRow) = (endRow, startRow);
-                            Write("🧷file path: "); 
+                            Write("🧷file path: ");
                             _repositoryWord.ReadExcel(startRow + 1
                                 , endRow + 1
                                 , ReadLine()?.Trim('"') ?? throw new ArgumentNullException());
                             WriteLine("✅loading successfully!");
                             Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
                             break;
-                        case [1, 2, 0]:
+                        case [1, 1, 2]:
                             Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                      .Append($"{BuildChosenNode(ref max, subMenuSource, choiceBuilder[1])}")
-                                      .Append("🧷file path: "));
-                            await _repositoryWord.ReadAsync(ReadLine() ??
-                                throw new ArgumentNullException(null, "❗can't not be null"));
+                                             .Append($"{BuildChosenNode(ref max, subMenuModify, choiceBuilder[1])}")
+                                             .Append($"{BuildChosenNode(ref max, subMenuSource, choiceBuilder[2])}")
+                                             .Append("🧷file path: "));
+                            await _repositoryWord.ReadAsync(
+                                ReadLine()?.Trim('"') ?? throw new ArgumentNullException());
                             //consider a loading bar??
-                            WriteLine("✅loading successfully!");
+                            WriteLine($"Time 4 loading: {sw.ElapsedMilliseconds}ms" +
+                            $"\n✅loading successfully!");
+                            Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
+                            break;
+                        case [1, 1, 3]:
+                            Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
+                                             .Append($"{BuildChosenNode(ref max, subMenuModify, choiceBuilder[1])}")
+                                             .Append($"{BuildChosenNode(ref max, subMenuSource, choiceBuilder[2])}"));
+
+                            sw = Stopwatch.StartNew();
+                            await _repositoryWord.WriteAsync();
+                            sw.Stop();
+                            WriteLine($"Time 4 write to file: {sw.ElapsedMilliseconds}ms");
+
+                            Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
+                            break;
+                            case [1, 6, 0]:
+                            Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}"));
+                            sw = Stopwatch.StartNew();
+                            _repositoryWord.OrderBy();
+                            sw.Stop();
+                            WriteLine($"Time 4 sort: {sw.ElapsedTicks} ticks");
                             Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
                             break;
                         case [2, 0, 0]:
@@ -72,13 +109,13 @@ namespace InstantWording
                             break;
                         case [3, 0, 0]:
                             WriteLine(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                          .Append(BuildMenu(max, subMenuShow)));
+                                          .Append(BuildMenu(max, subMenuSearch)));
                             pointer++;
                             Reset(ref max, ref menuBuilder);
                             break;
                         case [3, 1, 0]:
                             Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                      .Append($"{BuildChosenNode(ref max, subMenuShow, choiceBuilder[1])}"));
+                                      .Append($"{BuildChosenNode(ref max, subMenuSearch, choiceBuilder[1])}"));
                             _repositoryWord.Get();
                             Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
                             break;
@@ -132,69 +169,15 @@ namespace InstantWording
                             _repositoryWord.CheckAnswer(subMenuPriority[choiceBuilder[1] - 1], level);
                             Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
                             break;
-                        case [5, 0, 0]:
-                            WriteLine(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                          .Append(BuildMenu(max, subMenuModify)));
-                            pointer++;
-                            Reset(ref max, ref menuBuilder);
-                            break;
-                        case [5, 1, 0]:
-                            Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                      .Append($"{BuildChosenNode(ref max, subMenuModify, choiceBuilder[1])}"));
 
-                            _repositoryWord.Get();
-                            Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
-                            break;
-                        case [5, 2, 0]:
-                            Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                      .Append($"{BuildChosenNode(ref max, subMenuModify, choiceBuilder[1])}"));
-
-                            _repositoryWord.Get();
-                            Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
-                            break;
-                        case [5, 3, 0]:
-
-                            Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                      .Append($"{BuildChosenNode(ref max, subMenuModify, choiceBuilder[1])}"));
-
-                            _repositoryWord.Get();
-                            Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
-                            break;
-                        case [6, 0, 0]:
-                            Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}"));
-
-                            sw = Stopwatch.StartNew();
-                            await _repositoryWord.WriteAsync();
-                            sw.Stop();
-                            WriteLine($"Time 4 write to file: {sw.ElapsedMilliseconds}ms");
-
-                            Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
-                            break;
-                        case [7, 0, 0]:
-                            Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}"));
-
-                            sw = Stopwatch.StartNew();
-                            await _repositoryWord.WriteAsync();
-                            sw.Stop();
-                            WriteLine($"Time 4 write to file: {sw.ElapsedMilliseconds}ms");
-
-                            Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
-                            break;
-                        case [8, 0, 0]:
-                            Write(menuBuilder.Append($"{BuildChosenNode(ref max, menuBehavior, choiceBuilder[0])}")
-                                      .Append("🧷file path: "));
-
-                            sw = Stopwatch.StartNew();
-                            await _repositoryWord.ReadAsync(
-                                ReadLine()?.Trim('"') ?? throw new ArgumentNullException());
-                            sw.Stop();
-                            WriteLine($"Time 4 loading: {sw.ElapsedMilliseconds}ms" +
-                                $"\n✅loading successfully!");
-
+                        case [3, 2, 0] or [3, 3, 0] or [1, 2, 0] or [1, 3, 0] or [1, 4, 0]:
+                            WriteLine("under development... :D");
                             Reset(ref max, ref menuBuilder, ref choiceBuilder, ref pointer);
                             break;
                         default:
-                            throw new ArgumentOutOfRangeException(nameof(choiceBuilder), "❗out of choice's range");
+                            Write("under mukbean's control, stay away 💤"+asciiArts[3]);
+                            Thread.Sleep(3000);
+                            throw new ArgumentOutOfRangeException();
                     }
                 }
                 //better write a custom error warning instead of heavily depend on try catch

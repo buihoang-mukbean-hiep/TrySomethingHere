@@ -5,7 +5,7 @@ namespace InstantWording
     public class RepositoryBase<T>
         where T : class
     {
-        protected readonly List<T> listT = [];
+        protected List<T> listT = [];
         public virtual void Shuffle()
         {
             if (listT.Count == 0) throw new ArgumentNullException(nameof(listT), "❗no data yet, try 0 to add data");
